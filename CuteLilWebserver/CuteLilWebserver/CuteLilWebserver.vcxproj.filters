@@ -21,8 +21,8 @@
     <ClCompile Include="SocketTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CLWS.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="CLWS.h">
+      <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

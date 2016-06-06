@@ -25,6 +25,7 @@ void threadFun()  {
 	t2.join();
 }
 
+// TODO - name is NOmain !!!
 int NOmain()
 {
 	string s;

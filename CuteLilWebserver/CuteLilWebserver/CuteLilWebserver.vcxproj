@@ -64,7 +64,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CLWS.cpp" />
+    <ClCompile Include="CLWS.h" />
     <ClCompile Include="SocketTests.cpp" />
     <ClCompile Include="ThreadTests.cpp" />
   </ItemGroup>
