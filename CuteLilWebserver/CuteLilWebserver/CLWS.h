@@ -1,20 +1,16 @@
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <stdio.h>
 #include <iostream>
 #include <string>
-#include <vector>
 #include <map> 
-
 #include "ClientConnection.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
 #define DEFAULT_PORT "27015"
 
-std::map<std::string, ClientConnection> connections;
+std::map<ClientConnection*, ClientConnection> connections;
+int error = 0;
 
-SOB serverInit() {
+SOB initServer() {
 
 	WSADATA wsaData;
 	SOB returnData;
@@ -30,8 +26,6 @@ SOB serverInit() {
 		returnData.errorcode = 1;
 		return returnData;
 	}
-
-#define DEFAULT_PORT "27015"
 
 	struct addrinfo *result = NULL, *ptr = NULL, hints;
 
@@ -86,28 +80,43 @@ SOB serverInit() {
 	return returnData;
 }
 
-void inputListener() {
+void removeConnection(ClientConnection cC) {
+	connections.erase(&cC);
+}
+
+void removeAllConnections() {
+	for (std::map<ClientConnection*, ClientConnection>::iterator iter = connections.begin(); iter != connections.end(); ++iter) {
+		iter->second.killMe();
+	}
+	connections.clear();
+}
+
+void userInOut() {
 	std::string s;
 
-	std::cout << "Server Running" << std::endl;
-	std::cout << "Enter stop to quit" << std::endl;
+	std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+	std::cout << "----------------------------" << std::endl;
+	if (error == 0)	std::cout << "------Lil WS Started--------" << std::endl;
+	std::cout << "----Enter \"stop\" to quit----" << std::endl;
+	std::cout << "----------------------------\n" << std::endl;
 	for (;;) {
 		std::cin >> s;
 		if (s == "stop") {
 			break;
 		}
 	}
+	removeAllConnections();
 
-	
 	WSACleanup();
 	exit(0);
 }
 
-int getClientSocket(SOCKET &ListenSocket) {
+int provideClientSockets(SOCKET &ListenSocket) {
 
 	for (;;) {
 		SOCKET ClientSocket = INVALID_SOCKET;
-		// Accept a client socket
+		// accept a client socket
 		ClientSocket = accept(ListenSocket, NULL, NULL);
 		if (ClientSocket == INVALID_SOCKET) {
 			printf("accept failed: %d\n", WSAGetLastError());
@@ -116,24 +125,34 @@ int getClientSocket(SOCKET &ListenSocket) {
 
 			return 1;
 		}
-		// start new client socket thread
-		ClientConnection cC = ClientConnection(ClientSocket);
+		// start new client socket object
+		ClientConnection cC =  ClientConnection(ClientSocket);
+
+		// store connection
+		connections.insert(std::pair<ClientConnection*, ClientConnection>(&cC, cC));
 	}
 	return 0;
 }
 
 int main() {
-	std::string s;
-	int error = 0;
+
 	int numberOfThreads = 10;
 
+	std::thread inputThread(userInOut);
+
 	// init server and get ListenSocket
-	SOB listenSOB = serverInit();
+	SOB listenSOB = initServer();
 	error = listenSOB.errorcode;
+	if (error != 0) {
+		printf("server initialization faild\n");
+		printf("restart program\n");
 
-	std::thread inputThread(inputListener);
-
-	getClientSocket(listenSOB.socket);
+		// wait for termiation - user input "stop"
+		for (;;) {}
+	}
+	else {
+		provideClientSockets(listenSOB.socket);
+	}
 
 	return error;
 }
