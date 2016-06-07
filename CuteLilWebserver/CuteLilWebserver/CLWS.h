@@ -91,8 +91,13 @@ void inputListener() {
 
 	std::cout << "Server Running" << std::endl;
 	std::cout << "Enter stop to quit" << std::endl;
+	for (;;) {
+		std::cin >> s;
+		if (s == "stop") {
+			break;
+		}
+	}
 
-	std::cin >> s;
 	
 	WSACleanup();
 	exit(0);

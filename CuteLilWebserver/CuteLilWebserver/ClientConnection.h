@@ -7,6 +7,9 @@
 
 #include <thread>
 
+static std::string respondOK = "HTTP/1.1 200 OK\n\n";
+static std::string dummySite = "<h1>CLWS</h1>\n<p>Dose somethine</p>";
+
 struct SOB {
 	int errorcode;
 	SOCKET socket;
@@ -33,6 +36,21 @@ private:
 		t.join();
 	}
 
+	void checkRequest(char *recvbuf) {
+		char *token1 = NULL;
+		char *next_token1 = NULL;
+		char *firstLine = strtok_s(recvbuf, "\n", &next_token1);
+		std::string requestToCheck[3];
+		token1 = strtok_s(firstLine, "\n", &next_token1);
+
+		//char *header;
+		while (token1 != NULL) {
+			//header += *token1;
+			token1 = strtok_s(NULL, "\n", &next_token1);
+		}
+
+	}
+
 	int communicate() {
 #define DEFAULT_BUFLEN 512
 
@@ -46,10 +64,13 @@ private:
 		do {
 			iResult = recv(ClientSocket, recvbuf, recvbuflen, 0);
 			if (iResult > 0) {
-				printf("Bytes received: %d\n", iResult);
+				
+				checkRequest(recvbuf);
 
+				printf("Bytes received: %d\n", iResult);
+				std::string toSend = respondOK + dummySite;
 				// Echo the buffer back to the sender
-				iSendResult = send(ClientSocket, recvbuf, iResult, 0);
+				iSendResult = send(ClientSocket, toSend.c_str(), toSend.length(), 0);
 				if (iSendResult == SOCKET_ERROR) {
 					printf("send failed: %d\n", WSAGetLastError());
 					closesocket(ClientSocket);
