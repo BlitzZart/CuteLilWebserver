@@ -4,12 +4,15 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map> 
 
-#include "ConnOb.h"
+#include "ClientConnection.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
 #define DEFAULT_PORT "27015"
+
+std::map<std::string, ClientConnection> connections;
 
 SOB serverInit() {
 
@@ -83,7 +86,36 @@ SOB serverInit() {
 	return returnData;
 }
 
-std::vector<std::thread> threads;
+void inputListener() {
+	std::string s;
+
+	std::cout << "Server Running" << std::endl;
+	std::cout << "Enter stop to quit" << std::endl;
+
+	std::cin >> s;
+	
+	WSACleanup();
+	exit(0);
+}
+
+int getClientSocket(SOCKET &ListenSocket) {
+
+	for (;;) {
+		SOCKET ClientSocket = INVALID_SOCKET;
+		// Accept a client socket
+		ClientSocket = accept(ListenSocket, NULL, NULL);
+		if (ClientSocket == INVALID_SOCKET) {
+			printf("accept failed: %d\n", WSAGetLastError());
+			closesocket(ListenSocket);
+			WSACleanup();
+
+			return 1;
+		}
+		// start new client socket thread
+		ClientConnection cC = ClientConnection(ClientSocket);
+	}
+	return 0;
+}
 
 int main() {
 	std::string s;
@@ -94,16 +126,9 @@ int main() {
 	SOB listenSOB = serverInit();
 	error = listenSOB.errorcode;
 
-	for (int i = 0; i < numberOfThreads; i++) {
-		threads.push_back(connectNow(listenSOB.socket));
-	}
-	for (int i = 0; i < numberOfThreads; i++) {
-		threads[i].join();
-	}
+	std::thread inputThread(inputListener);
 
-	std::cout << "DONE" << std::endl;;
-
-	std::cin >> s;
+	getClientSocket(listenSOB.socket);
 
 	return error;
 }

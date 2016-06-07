@@ -26,7 +26,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ConnOb.h">
+    <ClInclude Include="ClientConnection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
