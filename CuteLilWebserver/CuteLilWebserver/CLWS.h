@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <atomic>
 #include <map> 
 #include "ClientConnection.h"
 
@@ -10,21 +11,16 @@
 std::map<ClientConnection*, ClientConnection> connections;
 int error = 0;
 
-SOB initServer() {
-
+SOCKET initServer() {
 	WSADATA wsaData;
-	SOB returnData;
-	returnData.errorcode = 0;
-	returnData.socket = INVALID_SOCKET;
-
 	int iResult;
 
 	// Initialize Winsock
 	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != 0) {
 		printf("WSAStartup failed: %d\n", iResult);
-		returnData.errorcode = 1;
-		return returnData;
+		error = 1;
+		return NULL;
 	}
 
 	struct addrinfo *result = NULL, *ptr = NULL, hints;
@@ -40,8 +36,8 @@ SOB initServer() {
 	if (iResult != 0) {
 		printf("getaddrinfo failed: %d\n", iResult);
 		WSACleanup();
-		returnData.errorcode = 1;
-		return returnData;
+		error = 1;
+		return NULL;
 	}
 
 	SOCKET ListenSocket = INVALID_SOCKET;
@@ -52,8 +48,8 @@ SOB initServer() {
 		printf("Error at socket(): %ld\n", WSAGetLastError());
 		freeaddrinfo(result);
 		WSACleanup();
-		returnData.errorcode = 1;
-		return returnData;
+		error = 1;
+		return NULL;
 	}
 
 	// Setup the TCP listening socket
@@ -63,8 +59,8 @@ SOB initServer() {
 		freeaddrinfo(result);
 		closesocket(ListenSocket);
 		WSACleanup();
-		returnData.errorcode = 1;
-		return returnData;
+		error = 1;
+		return NULL;
 	}
 	freeaddrinfo(result);
 
@@ -72,12 +68,12 @@ SOB initServer() {
 		printf("Listen failed with error: %ld\n", WSAGetLastError());
 		closesocket(ListenSocket);
 		WSACleanup();
-		returnData.errorcode = 1;
-		return returnData;
+		error = 1;
+		return NULL;
 	}
 
-	returnData.socket = ListenSocket;
-	return returnData;
+	error = 0;
+	return ListenSocket;
 }
 
 void removeConnection(ClientConnection cC) {
@@ -93,8 +89,8 @@ void removeAllConnections() {
 
 void userInOut() {
 	std::string s;
-
-	std::this_thread::sleep_for(std::chrono::milliseconds(200));
+	// wait for server initialisation
+	std::this_thread::sleep_for(std::chrono::milliseconds(250));
 
 	std::cout << "----------------------------" << std::endl;
 	if (error == 0)	std::cout << "------Lil WS Started--------" << std::endl;
@@ -113,7 +109,6 @@ void userInOut() {
 }
 
 int provideClientSockets(SOCKET &ListenSocket) {
-
 	for (;;) {
 		SOCKET ClientSocket = INVALID_SOCKET;
 		// accept a client socket
@@ -122,8 +117,8 @@ int provideClientSockets(SOCKET &ListenSocket) {
 			printf("accept failed: %d\n", WSAGetLastError());
 			closesocket(ListenSocket);
 			WSACleanup();
-
-			return 1;
+			error = 1;
+			return error;
 		}
 		// start new client socket object
 		ClientConnection cC =  ClientConnection(ClientSocket);
@@ -131,27 +126,40 @@ int provideClientSockets(SOCKET &ListenSocket) {
 		// store connection
 		connections.insert(std::pair<ClientConnection*, ClientConnection>(&cC, cC));
 	}
-	return 0;
+	error = 0;
+	return error;
+}
+
+void serverInitFailedMsg() {
+	printf("server initialization faild\n");
+	printf("restart program\n");
+
+	// wait for termiation - user input "stop"
+	for (;;) {}
+}
+
+void clientSocketFailedMsg() {
+	printf("client socket faild\n");
+	printf("restart program\n");
+
+	// wait for termiation (user input "stop" or closing window)
+	for (;;) {}
 }
 
 int main() {
-
-	int numberOfThreads = 10;
-
 	std::thread inputThread(userInOut);
 
 	// init server and get ListenSocket
-	SOB listenSOB = initServer();
-	error = listenSOB.errorcode;
-	if (error != 0) {
-		printf("server initialization faild\n");
-		printf("restart program\n");
+	SOCKET ListenSocket = initServer();
 
-		// wait for termiation - user input "stop"
-		for (;;) {}
+	if (error != 0) {
+		serverInitFailedMsg();
 	}
 	else {
-		provideClientSockets(listenSOB.socket);
+		// server initialized
+		if (provideClientSockets(ListenSocket) != 0) {
+			clientSocketFailedMsg();
+		}
 	}
 
 	return error;

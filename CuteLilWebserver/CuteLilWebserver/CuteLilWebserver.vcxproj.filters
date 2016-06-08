@@ -24,6 +24,9 @@
     <ClCompile Include="CLWS.h">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="ClientConnection.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClientConnection.h">
