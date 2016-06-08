@@ -61,10 +61,9 @@ ClientConnection::ClientConnection(SOCKET &ClientSocket) {
 					std::cout << "Responded: " << respondOK;
 				}
 				else {
-					std::string toSend = respondOK;
-					iSendResult = send(ClientSocket, toSend.c_str(), toSend.length(), 0);
-					toSend = respondNOK;
-					iSendResult = send(ClientSocket, toSend.c_str(), toSend.length(), 0);
+					//iSendResult = send(ClientSocket, respondOK.c_str(), respondOK.length(), 0);
+					iSendResult = send(ClientSocket, respondNOK.c_str(), respondNOK.length(), 0);
+					iSendResult = send(ClientSocket, badRequestSite.c_str(), badRequestSite.length(), 0);
 				}
 
 				if (iSendResult == SOCKET_ERROR) {
